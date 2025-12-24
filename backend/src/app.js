@@ -11,6 +11,8 @@ import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import { notFound, errorHandler } from "./middlewares/error.js";
 import courseRoutes from "./routes/courseRoutes.js";
+import batchRoutes from "./routes/batchRoutes.js";
+import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 
 
 const app = express();
@@ -26,6 +28,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/courses", courseRoutes);
+
+app.use("/api/batches", batchRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
+
 
 
 app.use(notFound);
