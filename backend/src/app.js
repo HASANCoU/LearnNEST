@@ -14,6 +14,10 @@ import courseRoutes from "./routes/courseRoutes.js";
 import batchRoutes from "./routes/batchRoutes.js";
 import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 
+import lessonRoutes from "./routes/lessonRoutes.js";
+import materialRoutes from "./routes/materialRoutes.js";
+
+
 
 const app = express();
 
@@ -31,6 +35,10 @@ app.use("/api/courses", courseRoutes);
 
 app.use("/api/batches", batchRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
+
+app.use("/api/lessons", lessonRoutes);
+app.use("/api/materials", materialRoutes);
+
 
 
 
