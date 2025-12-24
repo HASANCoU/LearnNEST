@@ -23,6 +23,10 @@ import submissionRoutes from "./routes/submissionRoutes.js";
 import liveClassRoutes from "./routes/liveClassRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 
+import examRoutes from "./routes/examRoutes.js";
+import questionRoutes from "./routes/questionRoutes.js";
+import attemptRoutes from "./routes/attemptRoutes.js";
+
 
 
 
@@ -53,6 +57,9 @@ app.use("/api/submissions", submissionRoutes);
 app.use("/api/live-classes", liveClassRoutes);
 app.use("/api/attendance", attendanceRoutes);
 
+app.use("/api/exams", examRoutes);
+app.use("/api/questions", questionRoutes);
+app.use("/api/attempts", attemptRoutes);
 
 
 
