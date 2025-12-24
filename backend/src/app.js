@@ -20,6 +20,10 @@ import materialRoutes from "./routes/materialRoutes.js";
 import assignmentRoutes from "./routes/assignmentRoutes.js";
 import submissionRoutes from "./routes/submissionRoutes.js";
 
+import liveClassRoutes from "./routes/liveClassRoutes.js";
+import attendanceRoutes from "./routes/attendanceRoutes.js";
+
+
 
 
 
@@ -45,6 +49,9 @@ app.use("/api/materials", materialRoutes);
 
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/submissions", submissionRoutes);
+
+app.use("/api/live-classes", liveClassRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 
 
