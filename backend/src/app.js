@@ -17,6 +17,10 @@ import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 import lessonRoutes from "./routes/lessonRoutes.js";
 import materialRoutes from "./routes/materialRoutes.js";
 
+import assignmentRoutes from "./routes/assignmentRoutes.js";
+import submissionRoutes from "./routes/submissionRoutes.js";
+
+
 
 
 const app = express();
@@ -38,6 +42,10 @@ app.use("/api/enrollments", enrollmentRoutes);
 
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/materials", materialRoutes);
+
+app.use("/api/assignments", assignmentRoutes);
+app.use("/api/submissions", submissionRoutes);
+
 
 
 
