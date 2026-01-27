@@ -1,8 +1,15 @@
 import Course from "../models/Course.js";
 import { slugify } from "../utils/slugify.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Teacher creates course (default pending)
+ * Supports thumbnail file upload
  */
 export async function createCourse(req, res) {
   const { title, description, category, level, language, price, thumbnailUrl } = req.body || {};
@@ -19,6 +26,14 @@ export async function createCourse(req, res) {
     slug = `${baseSlug}-${i++}`;
   }
 
+
+
+  // Handle thumbnail file upload
+  let finalThumbnailUrl = thumbnailUrl || "";
+  if (req.file) {
+    finalThumbnailUrl = `/uploads/thumbnails/${req.file.filename}`;
+  }
+
   const course = await Course.create({
     title,
     slug,
@@ -27,7 +42,7 @@ export async function createCourse(req, res) {
     level: level || "beginner",
     language: language || "Bangla",
     price: Number(price || 0),
-    thumbnailUrl: thumbnailUrl || "",
+    thumbnailUrl: finalThumbnailUrl,
     teacher: req.user.id,
     status: "pending",
     isPublished: false,
@@ -102,6 +117,7 @@ export async function listMyCourses(req, res) {
 
 /**
  * Teacher update (only own course). If approved/published, we set pending again (simple workflow).
+ * Supports thumbnail file upload
  */
 export async function updateCourse(req, res) {
   const { id } = req.params;
@@ -114,13 +130,22 @@ export async function updateCourse(req, res) {
     return res.status(403).json({ message: "Forbidden: not your course" });
   }
 
+  // Handle thumbnail file upload
+  if (req.file) {
+    if (course.thumbnailUrl) {
+      const oldPath = path.join(__dirname, "../../uploads/thumbnails", path.basename(course.thumbnailUrl));
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+    course.thumbnailUrl = `/uploads/thumbnails/${req.file.filename}`;
+  }
+
   const allowed = ["title", "description", "category", "level", "language", "price", "thumbnailUrl"];
   for (const key of allowed) {
     if (body[key] !== undefined) course[key] = body[key];
   }
 
   // if title changed, update slug uniquely
-  if (body.title) {
+  if (body.title && body.title !== course.title) {
     const baseSlug = slugify(body.title);
     let slug = baseSlug;
     let i = 1;
@@ -138,6 +163,27 @@ export async function updateCourse(req, res) {
   await course.save();
   res.json({ message: "Course updated and set to pending approval", course });
 }
+
+export async function deleteCourse(req, res) {
+  const { id } = req.params;
+
+  const course = await Course.findById(id);
+  if (!course) return res.status(404).json({ message: "Course not found" });
+
+  if (req.user.role !== "admin" && course.teacher.toString() !== req.user.id) {
+    return res.status(403).json({ message: "Forbidden: not your course" });
+  }
+
+  if (course.thumbnailUrl) {
+    const oldPath = path.join(__dirname, "../../uploads/thumbnails", path.basename(course.thumbnailUrl));
+    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+  }
+
+  await Course.deleteOne({ _id: id });
+  res.json({ message: "Course deleted" });
+}
+
+
 
 /**
  * Admin: approve/reject

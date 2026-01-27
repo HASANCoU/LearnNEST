@@ -15,8 +15,12 @@ const materialSchema = new mongoose.Schema(
       default: "link",
     },
 
-    url: { type: String, required: true, trim: true },
+    url: { type: String, default: "", trim: true }, // External URL or empty if using file
+    fileUrl: { type: String, default: "" }, // Local uploaded file path
     note: { type: String, default: "", maxlength: 800 },
+
+    order: { type: Number, default: 1 },      // New: order inside a module
+    duration: { type: String, default: "" },   // New: e.g. "6 min"
 
     isPublished: { type: Boolean, default: true },
   },

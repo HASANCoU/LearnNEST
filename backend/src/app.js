@@ -5,6 +5,8 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -21,6 +23,7 @@ import assignmentRoutes from "./routes/assignmentRoutes.js";
 import submissionRoutes from "./routes/submissionRoutes.js";
 
 import liveClassRoutes from "./routes/liveClassRoutes.js";
+import moduleRoutes from "./routes/moduleRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 
 import examRoutes from "./routes/examRoutes.js";
@@ -31,14 +34,20 @@ import announcementRoutes from "./routes/announcementRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import completionRoutes from "./routes/completionRoutes.js";
 
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(morgan("dev"));
+
+// Serve public uploaded files statically (avatars & thumbnails only)
+app.use("/uploads/avatars", express.static(path.join(__dirname, "../uploads/avatars")));
+app.use("/uploads/thumbnails", express.static(path.join(__dirname, "../uploads/thumbnails")));
+// Materials, Exams, and Submissions are protected and served via API endpoints
 
 app.get("/", (req, res) => res.json({ message: "LearnNEST API running ✅" }));
 
@@ -57,6 +66,7 @@ app.use("/api/assignments", assignmentRoutes);
 app.use("/api/submissions", submissionRoutes);
 
 app.use("/api/live-classes", liveClassRoutes);
+app.use("/api/modules", moduleRoutes);
 app.use("/api/attendance", attendanceRoutes);
 
 app.use("/api/exams", examRoutes);

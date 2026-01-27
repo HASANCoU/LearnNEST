@@ -9,6 +9,12 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, default: "" },
     avatarUrl: { type: String, default: "" },
 
+    // Profile fields
+    bio: { type: String, default: "", maxlength: 500 },
+    address: { type: String, default: "", maxlength: 200 },
+    dateOfBirth: { type: Date },
+    gender: { type: String, enum: ["male", "female", "other", ""], default: "" },
+
     role: {
       type: String,
       enum: ["student", "teacher", "admin", "moderator"],

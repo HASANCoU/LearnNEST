@@ -101,53 +101,33 @@ export default function StudentHome() {
         />
       </div>
 
-      {/* Quick Actions / Recent */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-white">
-              Continue Learning
-            </h3>
-            <Link
-              to="/student/enrollments"
-              className="text-sm text-indigo-400 hover:text-indigo-300 hover:underline"
-            >
-              View All
-            </Link>
-          </div>
-          {/* Placeholder for recent course */}
-          <div className="bg-slate-800/50 rounded-lg p-4 flex items-center gap-4">
-            <div className="h-12 w-12 rounded bg-indigo-600/20 flex items-center justify-center text-indigo-400">
-              <span className="font-bold text-lg">JS</span>
-            </div>
-            <div>
-              <h4 className="font-medium text-white">JavaScript Fundamentals</h4>
-              <div className="w-full bg-slate-700 h-2 rounded-full mt-2 w-32 md:w-64">
-                <div className="bg-indigo-500 h-2 rounded-full w-3/4"></div>
-              </div>
-            </div>
-            <button className="ml-auto px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors">
-              Resumé
-            </button>
-          </div>
+      {/* Recent Activity */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-bold text-white">
+            Continue Learning
+          </h3>
+          <Link
+            to="/student/enrollments"
+            className="text-sm text-indigo-400 hover:text-indigo-300 hover:underline"
+          >
+            View All
+          </Link>
         </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
-          <div className="space-y-3">
-            <Link
-              to="/courses"
-              className="block w-full p-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-center text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-600"
-            >
-              Browse Courses
-            </Link>
-            <Link
-              to="/student/notifications"
-              className="block w-full p-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-center text-slate-300 hover:text-white transition-colors border border-slate-700 hover:border-slate-600"
-            >
-              Notifications
-            </Link>
+        {/* Placeholder for recent course */}
+        <div className="bg-slate-800/50 rounded-lg p-4 flex items-center gap-4">
+          <div className="h-12 w-12 rounded bg-indigo-600/20 flex items-center justify-center text-indigo-400">
+            <span className="font-bold text-lg">JS</span>
           </div>
+          <div className="flex-1">
+            <h4 className="font-medium text-white text-sm md:text-base">JavaScript Fundamentals</h4>
+            <div className="w-full bg-slate-700 h-2 rounded-full mt-2 max-w-sm">
+              <div className="bg-indigo-500 h-2 rounded-full w-3/4"></div>
+            </div>
+          </div>
+          <button className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors">
+            Resumé
+          </button>
         </div>
       </div>
     </div>

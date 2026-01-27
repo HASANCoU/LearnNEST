@@ -21,13 +21,13 @@ export default function Home() {
             to="/register"
             className="px-8 py-3.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-lg transition-all shadow-lg shadow-indigo-500/25 hover:-translate-y-1"
           >
-            Get Started Free
+            Get Started
           </Link>
           <Link
-            to="/courses"
+            to="/login"
             className="px-8 py-3.5 rounded-full bg-slate-800 hover:bg-slate-700 text-white font-semibold text-lg border border-slate-700 transition-all hover:-translate-y-1"
           >
-            Browse Courses
+            Login
           </Link>
         </div>
       </section>

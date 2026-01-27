@@ -17,7 +17,7 @@ export default function Login() {
       const { data } = await http.post("/api/auth/login", form);
       setToken(data.token);
       setUser(data.user);
-      nav("/dashboard");
+      nav("/courses");
     } catch (err) {
       setMsg(err?.response?.data?.message || "Login failed");
     } finally {

@@ -11,6 +11,7 @@ import Notifications from "./pages/Notifications";
 
 import ProtectedRoute from "./auth/ProtectedRoute";
 import DashboardRedirect from "./pages/DashboardRedirect";
+import Profile from "./pages/Profile";
 
 // student
 import StudentShell from "./pages/student/StudentShell";
@@ -53,6 +54,16 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <DashboardRedirect />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Profile page for all authenticated users */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />

@@ -8,10 +8,10 @@ function StatusPill({ status, isPublished }) {
     text === "published"
       ? "bg-emerald-900/40 border-emerald-700 text-emerald-200"
       : text === "approved"
-      ? "bg-sky-900/40 border-sky-700 text-sky-200"
-      : text === "rejected"
-      ? "bg-rose-900/40 border-rose-700 text-rose-200"
-      : "bg-amber-900/40 border-amber-700 text-amber-200";
+        ? "bg-sky-900/40 border-sky-700 text-sky-200"
+        : text === "rejected"
+          ? "bg-rose-900/40 border-rose-700 text-rose-200"
+          : "bg-amber-900/40 border-amber-700 text-amber-200";
   return (
     <span className={`inline-flex px-2 py-0.5 rounded border text-xs ${cls}`}>
       {text}
@@ -27,6 +27,8 @@ export default function TeacherCourses() {
 
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState("");
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -34,7 +36,6 @@ export default function TeacherCourses() {
     level: "beginner",
     language: "Bangla",
     price: 0,
-    thumbnailUrl: "",
   });
 
   const filtered = useMemo(() => {
@@ -60,12 +61,33 @@ export default function TeacherCourses() {
     load();
   }, []);
 
+  const handleThumbnailChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setThumbnailFile(file);
+      setThumbnailPreview(URL.createObjectURL(file));
+    }
+  };
+
   const createCourse = async (e) => {
     e.preventDefault();
     setCreating(true);
     setMsg("");
     try {
-      const { data } = await http.post("/api/courses", form);
+      const formData = new FormData();
+      formData.append("title", form.title);
+      formData.append("description", form.description);
+      formData.append("category", form.category);
+      formData.append("level", form.level);
+      formData.append("language", form.language);
+      formData.append("price", form.price);
+      if (thumbnailFile) {
+        formData.append("thumbnail", thumbnailFile);
+      }
+
+      const { data } = await http.post("/api/courses", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       setCourses((prev) => [data.course, ...prev]);
       setOpen(false);
       setForm({
@@ -75,8 +97,9 @@ export default function TeacherCourses() {
         level: "beginner",
         language: "Bangla",
         price: 0,
-        thumbnailUrl: "",
       });
+      setThumbnailFile(null);
+      setThumbnailPreview("");
     } catch (e) {
       setMsg(e?.response?.data?.message || "Failed to create course");
     } finally {
@@ -242,15 +265,23 @@ export default function TeacherCourses() {
                     setForm({ ...form, price: Number(e.target.value || 0) })
                   }
                 />
-                <input
-                  className="w-full p-2 rounded bg-slate-900 border border-slate-800"
-                  placeholder="Thumbnail URL"
-                  value={form.thumbnailUrl}
-                  onChange={(e) =>
-                    setForm({ ...form, thumbnailUrl: e.target.value })
-                  }
-                />
+                <div>
+                  <label className="text-xs text-slate-400">Thumbnail Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="w-full p-2 rounded bg-slate-900 border border-slate-800 file:mr-3 file:rounded file:border-0 file:bg-slate-700 file:px-3 file:py-1 file:text-sm file:text-slate-300"
+                    onChange={handleThumbnailChange}
+                  />
+                </div>
               </div>
+
+              {thumbnailPreview && (
+                <div className="mt-2">
+                  <p className="text-xs text-slate-400 mb-1">Preview:</p>
+                  <img src={thumbnailPreview} alt="Thumbnail preview" className="h-24 rounded object-cover" />
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-2 mt-2">
                 <button

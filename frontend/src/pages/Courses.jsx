@@ -84,119 +84,145 @@ export default function Courses() {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="relative rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-900/50 border border-slate-800 p-8 overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold text-white mb-2">Explore Courses</h1>
-          <p className="text-slate-300 max-w-2xl">
-            Discover a wide range of courses designed to help you master new skills
-            and advance your career. Join thousands of learners today.
-          </p>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 backdrop-blur-sm sticky top-4 z-10 shadow-xl shadow-black/20">
-        <div className="flex flex-col md:flex-row gap-4 justify-between">
-          {/* Search */}
-          <div className="relative flex-1 max-w-lg">
-            <input
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-950 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white placeholder-slate-500 transition-all outline-none"
-              placeholder="Search courses..."
-              value={state.q}
-              onChange={(e) => setState((s) => ({ ...s, q: e.target.value }))}
-              onKeyDown={(e) => e.key === "Enter" && load(state.q)}
-            />
+    <div className="flex flex-col lg:flex-row gap-8 items-start">
+      {/* Sidebar Filters */}
+      <aside className="w-full lg:w-72 lg:sticky lg:top-8 space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl shadow-black/20">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
             <svg
-              className="absolute left-3 top-3 h-5 w-5 text-slate-500"
+              className="w-5 h-5 text-indigo-400"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
-          </div>
+            Filters
+          </h2>
 
-          {/* Filters */}
-          <div className="flex gap-2 text-sm overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
-            <FilterSelect
-              value={state.category}
-              onChange={(e) => setState((s) => ({ ...s, category: e.target.value }))}
-              options={categories.map(c => ({ value: c, label: c === "all" ? "All Categories" : c }))}
-            />
-            <FilterSelect
-              value={state.level}
-              onChange={(e) => setState((s) => ({ ...s, level: e.target.value }))}
-              options={levels.map(l => ({ value: l, label: l === "all" ? "All Levels" : l }))}
-            />
-            <FilterSelect
-              value={state.sort}
-              onChange={(e) => setState((s) => ({ ...s, sort: e.target.value }))}
-              options={[
-                { value: "newest", label: "Newest" },
-                { value: "title", label: "Title (A-Z)" }
-              ]}
-            />
+          <div className="space-y-6">
+            {/* Search */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Search</label>
+              <div className="relative">
+                <input
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white placeholder-slate-600 transition-all outline-none text-sm"
+                  placeholder="Course name..."
+                  value={state.q}
+                  onChange={(e) => setState((s) => ({ ...s, q: e.target.value }))}
+                  onKeyDown={(e) => e.key === "Enter" && load(state.q)}
+                />
+                <svg
+                  className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Category */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Category</label>
+              <FilterSelect
+                value={state.category}
+                onChange={(e) => setState((s) => ({ ...s, category: e.target.value }))}
+                options={categories.map(c => ({ value: c, label: c === "all" ? "All Categories" : c }))}
+              />
+            </div>
+
+            {/* Level */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Skill Level</label>
+              <FilterSelect
+                value={state.level}
+                onChange={(e) => setState((s) => ({ ...s, level: e.target.value }))}
+                options={levels.map(l => ({ value: l, label: l === "all" ? "All Levels" : l }))}
+              />
+            </div>
+
+            {/* Sort */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Sort By</label>
+              <FilterSelect
+                value={state.sort}
+                onChange={(e) => setState((s) => ({ ...s, sort: e.target.value }))}
+                options={[
+                  { value: "newest", label: "Newest Arrivals" },
+                  { value: "title", label: "Alphabetical (A-Z)" }
+                ]}
+              />
+            </div>
+
             <button
               onClick={resetFilters}
-              className="px-4 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors whitespace-nowrap"
+              className="w-full py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-white hover:bg-slate-800 hover:border-slate-700 transition-all active:scale-[0.98]"
             >
-              Reset
+              Reset All Filters
             </button>
           </div>
         </div>
+
+        {state.msg && (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            {state.msg}
+          </div>
+        )}
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 w-full space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            {state.loading ? "Loading..." : `${filtered.length} Courses Found`}
+          </h1>
+        </div>
+
+        {/* Grid */}
+        {state.loading ? (
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-72 rounded-2xl bg-slate-900 animate-pulse border border-slate-800"></div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filtered.length > 0 ? (
+              filtered.map((c) => <CourseCard key={c._id} course={c} />)
+            ) : (
+              <div className="col-span-full py-20 bg-slate-900/40 rounded-3xl border border-dashed border-slate-800 text-center">
+                <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-600">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-300">No matches found</h3>
+                <p className="text-slate-500 mt-1 max-w-sm mx-auto">
+                  We couldn't find any courses matching your current filters. Try adjusting your search term or category.
+                </p>
+                <button
+                  onClick={resetFilters}
+                  className="mt-6 px-6 py-2.5 rounded-full bg-indigo-600/10 text-indigo-400 border border-indigo-600/20 hover:bg-indigo-600 hover:text-white transition-all font-semibold"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-
-      {state.msg && (
-        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
-          {state.msg}
-        </div>
-      )}
-
-      {/* Grid */}
-      {state.loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 rounded-xl bg-slate-900 animate-pulse border border-slate-800"></div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.length > 0 ? (
-            filtered.map((c) => <CourseCard key={c._id} course={c} />)
-          ) : (
-            <div className="col-span-full py-12 text-center text-slate-500">
-              <svg
-                className="mx-auto h-12 w-12 text-slate-600 mb-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p>No courses found matching your criteria.</p>
-              <button
-                onClick={resetFilters}
-                className="mt-4 text-indigo-400 hover:underline"
-              >
-                Clear all filters
-              </button>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
 
 function FilterSelect({ value, onChange, options }) {
   return (
-    <div className="relative">
+    <div className="relative group">
       <select
-        className="appearance-none pl-4 pr-10 py-2.5 rounded-lg bg-slate-800 border border-slate-700 hover:border-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-colors"
+        className="appearance-none w-full pl-4 pr-10 py-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 inline-block cursor-pointer transition-all"
         value={value}
         onChange={onChange}
       >
@@ -206,7 +232,7 @@ function FilterSelect({ value, onChange, options }) {
           </option>
         ))}
       </select>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 group-hover:text-slate-300 transition-colors">
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
         </svg>

@@ -1,6 +1,23 @@
 import Assignment from "../models/Assignment.js";
 import Batch from "../models/Batch.js";
 import Lesson from "../models/Lesson.js";
+import Enrollment from "../models/Enrollment.js";
+import Notification from "../models/Notification.js";
+
+async function notifyStudents({ batchId, creatorId, title, message, link, type }) {
+  const enrolls = await Enrollment.find({ batch: batchId, status: "approved" }).select("student").lean();
+  const userIds = enrolls.map((e) => String(e.student)).filter((id) => id !== String(creatorId));
+  if (!userIds.length) return;
+
+  const docs = userIds.map((uid) => ({
+    user: uid,
+    type: type || "info",
+    title,
+    message: message.slice(0, 240),
+    link: link || "",
+  }));
+  await Notification.insertMany(docs, { ordered: false });
+}
 
 /**
  * Teacher/Admin creates assignment for a batch
@@ -36,6 +53,17 @@ export async function createAssignment(req, res) {
     createdBy: req.user.id,
     isPublished: isPublished !== undefined ? Boolean(isPublished) : true,
   });
+
+  if (assignment.isPublished) {
+    await notifyStudents({
+      batchId,
+      creatorId: req.user.id,
+      title: `New Assignment: ${assignment.title}`,
+      message: `A new assignment "${assignment.title}" has been posted.`,
+      link: `/student/batch/${batchId}?tab=assignments`,
+      type: "assignment",
+    });
+  }
 
   res.status(201).json({ message: "Assignment created", assignment });
 }
@@ -82,7 +110,22 @@ export async function updateAssignment(req, res) {
   if (body.dueDate !== undefined) assignment.dueDate = body.dueDate ? new Date(body.dueDate) : null;
   if (body.totalMarks !== undefined) assignment.totalMarks = Number(body.totalMarks);
 
+  if (body.totalMarks !== undefined) assignment.totalMarks = Number(body.totalMarks);
+
+  const wasPublished = !!assignment.isPublished;
   await assignment.save();
+
+  if (!wasPublished && assignment.isPublished) {
+    await notifyStudents({
+      batchId: assignment.batch,
+      creatorId: req.user.id,
+      title: `New Assignment Published: ${assignment.title}`,
+      message: `The assignment "${assignment.title}" is now available.`,
+      link: `/student/batch/${assignment.batch}?tab=assignments`,
+      type: "assignment",
+    });
+  }
+
   res.json({ message: "Assignment updated", assignment });
 }
 

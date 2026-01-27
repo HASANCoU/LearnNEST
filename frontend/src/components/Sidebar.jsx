@@ -11,8 +11,8 @@ export default function Sidebar({ links, title }) {
             <Link
                 to={to}
                 className={`flex items-center px-4 py-3 rounded-lg transition-all duration-200 group ${active
-                        ? "bg-indigo-600/10 text-indigo-400 border border-indigo-600/20"
-                        : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                    ? "bg-indigo-600/10 text-indigo-400 border border-indigo-600/20"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
                     }`}
             >
                 <span className="text-sm font-medium">{label}</span>
@@ -57,7 +57,7 @@ export default function Sidebar({ links, title }) {
                 <button
                     onClick={() => {
                         logout();
-                        window.location.href = "/";
+                        window.location.href = "/login";
                     }}
                     className="flex items-center w-full px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-400/10 hover:text-red-300 rounded-lg transition-colors"
                 >
