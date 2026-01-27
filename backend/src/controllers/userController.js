@@ -76,3 +76,13 @@ export async function uploadAvatar(req, res) {
     res.status(500).json({ message: "Failed to upload avatar" });
   }
 }
+
+// List all teachers (Admin usage mainly)
+export async function listTeachers(req, res) {
+  try {
+    const teachers = await User.find({ role: "teacher" }).select("name email avatarUrl");
+    res.json({ teachers });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load teachers" });
+  }
+}

@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { http } from "../../api/http";
+import { getUser } from "../../auth/auth";
 
 export default function TeacherCourseEdit() {
   const { courseId } = useParams();
   const nav = useNavigate();
   const [course, setCourse] = useState(null);
   const [form, setForm] = useState(null);
+  const [teachers, setTeachers] = useState([]);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const user = getUser();
 
   const load = async () => {
     setLoading(true);
@@ -20,11 +23,14 @@ export default function TeacherCourseEdit() {
       setForm({
         title: data.course.title || "",
         description: data.course.description || "",
-        category: data.course.category || "General",
-        level: data.course.level || "beginner",
-        language: data.course.language || "Bangla",
         price: data.course.price || 0,
+
         thumbnailUrl: data.course.thumbnailUrl || "",
+        teacher: data.course.teacher?._id || data.course.teacher,
+        // Preserving defaults for hidden fields
+        category: "General",
+        level: "beginner",
+        language: "Bangla",
       });
     } catch (e) {
       setMsg(e?.response?.data?.message || "Failed to load course");
@@ -32,6 +38,12 @@ export default function TeacherCourseEdit() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user?.role === "admin") {
+      http.get("/api/users/teachers").then(({ data }) => setTeachers(data.teachers || []));
+    }
+  }, [user]);
 
   useEffect(() => {
     load();
@@ -66,7 +78,7 @@ export default function TeacherCourseEdit() {
         </div>
         <button
           className="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700"
-          onClick={() => nav("/teacher/courses")}
+          onClick={() => nav(user?.role === "admin" ? "/admin/courses" : "/teacher/courses")}
         >
           ← Back
         </button>
@@ -95,29 +107,24 @@ export default function TeacherCourseEdit() {
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
 
-          <div className="grid md:grid-cols-3 gap-3">
-            <input
-              className="w-full p-2 rounded bg-slate-900 border border-slate-800"
-              placeholder="Category"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-            />
-            <select
-              className="w-full p-2 rounded bg-slate-900 border border-slate-800"
-              value={form.level}
-              onChange={(e) => setForm({ ...form, level: e.target.value })}
-            >
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
-            </select>
-            <input
-              className="w-full p-2 rounded bg-slate-900 border border-slate-800"
-              placeholder="Language"
-              value={form.language}
-              onChange={(e) => setForm({ ...form, language: e.target.value })}
-            />
-          </div>
+          {/* Removed Category, Level, Language inputs as per request */}
+
+          {user?.role === "admin" && (
+            <div>
+              <label className="text-xs text-slate-400">Teacher (Admin Assign)</label>
+              <select
+                className="w-full p-2 rounded bg-slate-900 border border-slate-800"
+                value={form.teacher}
+                onChange={(e) => setForm({ ...form, teacher: e.target.value })}
+              >
+                {teachers.map((t) => (
+                  <option key={t._id} value={t._id}>
+                    {t.name} ({t.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-3">
             <input

@@ -184,12 +184,61 @@ export async function deleteLesson(req, res) {
 export const viewLessonFile = async (req, res) => {
   try {
     const lesson = await Lesson.findById(req.params.id);
-    if (!lesson || !lesson.fileUrl) return res.status(404).send("File not found");
+    if (!lesson || !lesson.fileUrl) return res.status(404).json({ message: "File not found" });
+
     const filePath = path.join(process.cwd(), lesson.fileUrl);
-    if (!fs.existsSync(filePath)) return res.status(404).send("File not found");
-    res.sendFile(filePath);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "File not found on server" });
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeTypes = {
+      ".pdf": "application/pdf",
+      ".mp4": "video/mp4",
+      ".webm": "video/webm",
+      ".mov": "video/quicktime",
+      ".avi": "video/x-msvideo",
+      ".mkv": "video/x-matroska",
+    };
+
+    const contentType = mimeTypes[ext] || "application/octet-stream";
+    const stat = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (range && contentType.startsWith("video/")) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (start >= fileSize) {
+        res.status(416).send("Requested range not satisfiable\n" + start + " >= " + fileSize);
+        return;
+      }
+
+      const chunksize = (end - start) + 1;
+      const file = fs.createReadStream(filePath, { start, end });
+      const head = {
+        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": chunksize,
+        "Content-Type": contentType,
+      };
+
+      res.writeHead(206, head);
+      file.pipe(res);
+    } else {
+      const head = {
+        "Content-Length": fileSize,
+        "Content-Type": contentType,
+      };
+      res.writeHead(200, head);
+      fs.createReadStream(filePath).pipe(res);
+    }
   } catch (err) {
-    res.status(500).send(err.message);
+    console.error("Error viewing lesson file:", err);
+    res.status(500).json({ message: err.message });
   }
 };
 

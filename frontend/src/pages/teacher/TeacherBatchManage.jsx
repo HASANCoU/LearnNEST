@@ -1280,7 +1280,6 @@ export default function TeacherBatchManage() {
             <MaterialForm
               initial={editingMaterial}
               lessons={lessons || []}
-              milestones={milestones || []}
               submitting={materialSubmitting}
               onCancel={() => {
                 setMaterialFormOpen(false);
@@ -1472,64 +1471,92 @@ export default function TeacherBatchManage() {
                       ) : submissions.length === 0 ? (
                         <div className="text-slate-400 mt-2">No submissions yet.</div>
                       ) : (
-                        <div className="mt-2 space-y-2">
-                          {submissions.map((s) => (
-                            <div
-                              key={s._id}
-                              className="border border-slate-800 rounded p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
-                            >
-                              <div className="min-w-0">
-                                <div className="text-sm font-medium truncate">
-                                  {s.student?.name || "Student"}{" "}
-                                  <span className="text-xs text-slate-500">
-                                    {s.student?.email ? `(${s.student.email})` : ""}
-                                  </span>
-                                </div>
-                                <div className="text-xs text-slate-500 mt-1">
-                                  <a
-                                    className="underline hover:text-slate-200"
-                                    href={s.submissionUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Submission Link
-                                  </a>
-                                  {" • "}
-                                  {new Date(s.createdAt).toLocaleString()}
-                                  {s.status === "graded" && s.gradedAt
-                                    ? ` • graded: ${new Date(s.gradedAt).toLocaleString()}`
-                                    : ""}
-                                </div>
-                                {s.note && (
-                                  <div className="text-sm text-slate-300 mt-2 whitespace-pre-wrap">
-                                    {s.note}
-                                  </div>
-                                )}
-                                {s.status === "graded" && (
-                                  <div className="text-sm text-slate-300 mt-2">
-                                    <span className="font-semibold">Marks:</span>{" "}
-                                    {s.marks ?? "-"}
-                                    {s.feedback ? (
-                                      <>
-                                        {" • "}
-                                        <span className="font-semibold">Feedback:</span>{" "}
-                                        {s.feedback}
-                                      </>
-                                    ) : null}
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex gap-2 justify-end">
-                                <button
-                                  className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700"
-                                  onClick={() => openGrade(s)}
-                                >
-                                  Grade
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                        <div className="mt-2 overflow-x-auto">
+                          <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-900">
+                              <tr>
+                                <th className="p-3">Student</th>
+                                <th className="p-3">Submitted At</th>
+                                <th className="p-3">Links</th>
+                                <th className="p-3">Note</th>
+                                <th className="p-3">Marks</th>
+                                <th className="p-3">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {submissions.map((s) => (
+                                <tr key={s._id} className="border-t border-slate-800">
+                                  <td className="p-3">
+                                    <div className="font-medium">{s.student?.name || "Student"}</div>
+                                    <div className="text-xs text-slate-400">{s.student?.email}</div>
+                                  </td>
+                                  <td className="p-3 text-slate-400">
+                                    {new Date(s.createdAt).toLocaleString()}
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="flex flex-col gap-1">
+                                      {s.submissionUrl && (
+                                        <a
+                                          className="text-indigo-400 hover:underline"
+                                          href={s.submissionUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          View Link
+                                        </a>
+                                      )}
+                                      {s.fileUrl && (
+                                        <a
+                                          className="text-indigo-400 hover:underline"
+                                          href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/submissions/${s._id}/file?token=${localStorage.getItem("ln_token")}`}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          View File
+                                        </a>
+                                      )}
+                                      {!s.submissionUrl && !s.fileUrl && (
+                                        <span className="text-slate-500">—</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="p-3">
+                                    {s.note ? (
+                                      <div className="text-xs text-slate-300 max-w-xs truncate" title={s.note}>
+                                        {s.note}
+                                      </div>
+                                    ) : (
+                                      <span className="text-slate-500">—</span>
+                                    )}
+                                  </td>
+                                  <td className="p-3">
+                                    {s.status === "graded" && s.marks !== null ? (
+                                      <div>
+                                        <span className="font-medium text-green-400">
+                                          {s.marks} / {selectedAssignmentId ? assignments.find(a => a._id === selectedAssignmentId)?.totalMarks ?? 100 : 100}
+                                        </span>
+                                        {s.feedback && (
+                                          <div className="text-xs text-slate-400 mt-1 max-w-xs truncate" title={s.feedback}>
+                                            {s.feedback}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-slate-500">—</span>
+                                    )}
+                                  </td>
+                                  <td className="p-3">
+                                    <button
+                                      className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-white"
+                                      onClick={() => openGrade(s)}
+                                    >
+                                      {s.status === "graded" ? "Edit Grade" : "Grade"}
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       )}
                     </div>

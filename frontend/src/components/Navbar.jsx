@@ -1,10 +1,11 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getUser, logout } from "../auth/auth";
 import { useState, useEffect, useRef } from "react";
 import { http } from "../api/http";
 
 export default function Navbar() {
     const location = useLocation();
+    const navigate = useNavigate();
     const [user, setUserState] = useState(getUser());
     const [isOpen, setIsOpen] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
@@ -125,7 +126,13 @@ export default function Navbar() {
                                     {/* Notifications Dropdown */}
                                     <div className="relative" ref={notifRef}>
                                         <button
-                                            onClick={() => setNotifOpen(!notifOpen)}
+                                            onClick={() => {
+                                                const accessing = !notifOpen;
+                                                setNotifOpen(accessing);
+                                                if (accessing && unreadCount > 0) {
+                                                    markAllAsRead();
+                                                }
+                                            }}
                                             className="relative p-2 text-slate-400 hover:text-white transition-colors"
                                             title="Notifications"
                                         >
@@ -174,9 +181,16 @@ export default function Navbar() {
                                                                 key={n._id}
                                                                 className={`px-4 py-3 border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors cursor-pointer ${!n.isRead ? "bg-indigo-500/5" : ""
                                                                     }`}
-                                                                onClick={() => {
-                                                                    if (!n.isRead) markOneRead(n._id);
-                                                                    if (n.link) window.location.href = n.link;
+                                                                onClick={async () => {
+                                                                    if (!n.isRead) await markOneRead(n._id);
+                                                                    if (n.link) {
+                                                                        setNotifOpen(false);
+                                                                        if (n.link.startsWith("http")) {
+                                                                            window.location.href = n.link;
+                                                                        } else {
+                                                                            navigate(n.link);
+                                                                        }
+                                                                    }
                                                                 }}
                                                             >
                                                                 <div className="flex justify-between items-start mb-1">

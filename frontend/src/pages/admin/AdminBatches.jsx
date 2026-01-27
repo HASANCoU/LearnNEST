@@ -146,6 +146,16 @@ export default function AdminBatches() {
     }
   };
 
+  const deleteBatch = async (id) => {
+    if (!window.confirm("Delete batch? This cannot be undone.")) return;
+    try {
+      await http.delete(`/api/batches/${id}`);
+      setBatches((prev) => prev.filter((b) => b._id !== id));
+    } catch {
+      alert("Failed to delete batch");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
@@ -208,6 +218,9 @@ export default function AdminBatches() {
                       </Link>
                       <button className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700" onClick={() => openEdit(b)}>
                         Edit
+                      </button>
+                      <button className="px-3 py-1.5 rounded bg-rose-700/40 border border-rose-700 hover:bg-rose-700/60" onClick={() => deleteBatch(b._id)}>
+                        Delete
                       </button>
                     </div>
                   </td>

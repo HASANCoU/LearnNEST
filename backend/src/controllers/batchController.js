@@ -81,3 +81,16 @@ export async function updateBatch(req, res) {
 
   res.json({ message: "Batch updated", batch });
 }
+
+/**
+ * Admin: delete batch
+ */
+export async function deleteBatch(req, res) {
+  const { id } = req.params;
+
+  const batch = await Batch.findByIdAndDelete(id);
+  if (!batch) return res.status(404).json({ message: "Batch not found" });
+
+  res.json({ message: "Batch deleted", batch });
+}
+

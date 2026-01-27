@@ -126,7 +126,7 @@ export async function updateCourse(req, res) {
   const course = await Course.findById(id);
   if (!course) return res.status(404).json({ message: "Course not found" });
 
-  if (course.teacher.toString() !== req.user.id) {
+  if (req.user.role !== "admin" && course.teacher.toString() !== req.user.id) {
     return res.status(403).json({ message: "Forbidden: not your course" });
   }
 
@@ -140,6 +140,10 @@ export async function updateCourse(req, res) {
   }
 
   const allowed = ["title", "description", "category", "level", "language", "price", "thumbnailUrl"];
+
+  // Allow admin to reassign teacher
+  if (req.user.role === "admin") allowed.push("teacher");
+
   for (const key of allowed) {
     if (body[key] !== undefined) course[key] = body[key];
   }

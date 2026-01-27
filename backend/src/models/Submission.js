@@ -7,7 +7,9 @@ const submissionSchema = new mongoose.Schema(
     student: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
     // Phase-5: URL based submission (Drive/GitHub/Link). Later: file upload.
-    submissionUrl: { type: String, required: true, trim: true },
+    // Phase-5: URL based submission (Drive/GitHub/Link). Later: file upload.
+    submissionUrl: { type: String, trim: true },
+    fileUrl: { type: String, trim: true },
     note: { type: String, default: "", maxlength: 800 },
 
     status: { type: String, enum: ["submitted", "graded"], default: "submitted" },

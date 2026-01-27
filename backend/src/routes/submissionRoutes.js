@@ -4,9 +4,11 @@ import {
     gradeSubmission,
     listSubmissionsByAssignment,
     mySubmissions,
+    getSubmissionFile,
 } from "../controllers/submissionController.js";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { requireEnrolledForAssignment } from "../middlewares/requireEnrolledForAssignment.js";
+import { uploadMaterial, setUploadType } from "../middlewares/upload.js";
 const router = Router();
 
 // student creates submission (must be enrolled in assignment batch)
@@ -15,7 +17,15 @@ const router = Router();
 // and rely on assignment batch being in their enrollments in later check.
 // We'll add a strict guard function below.
 
-router.post("/", requireAuth, requireRole("student"), createSubmission);
+router.post("/",
+    requireAuth,
+    requireRole("student"),
+    setUploadType("submissions"),
+    uploadMaterial.single("file"),
+    requireEnrolledForAssignment,
+    createSubmission
+);
+
 router.get("/me", requireAuth, requireRole("student"), mySubmissions);
 
 // teacher/admin views submissions for assignment
@@ -24,5 +34,7 @@ router.get("/", requireAuth, requireRole("teacher", "admin"), listSubmissionsByA
 // grade
 router.patch("/:id/grade", requireAuth, requireRole("teacher", "admin"), gradeSubmission);
 
-router.post("/", requireAuth, requireRole("student"), requireEnrolledForAssignment, createSubmission);
+// view file
+router.get("/:id/file", requireAuth, getSubmissionFile);
+
 export default router;

@@ -227,33 +227,7 @@ export default function TeacherCourses() {
                 }
               />
 
-              <div className="grid md:grid-cols-3 gap-3">
-                <input
-                  className="w-full p-2 rounded bg-slate-900 border border-slate-800"
-                  placeholder="Category"
-                  value={form.category}
-                  onChange={(e) =>
-                    setForm({ ...form, category: e.target.value })
-                  }
-                />
-                <select
-                  className="w-full p-2 rounded bg-slate-900 border border-slate-800"
-                  value={form.level}
-                  onChange={(e) => setForm({ ...form, level: e.target.value })}
-                >
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                </select>
-                <input
-                  className="w-full p-2 rounded bg-slate-900 border border-slate-800"
-                  placeholder="Language"
-                  value={form.language}
-                  onChange={(e) =>
-                    setForm({ ...form, language: e.target.value })
-                  }
-                />
-              </div>
+              {/* Removed Category, Level, Language inputs as per request. Defaults are set in state. */}
 
               <div className="grid md:grid-cols-2 gap-3">
                 <input

@@ -10,8 +10,13 @@ export async function createSubmission(req, res) {
   const body = req.body || {};
   const { assignmentId, submissionUrl, note } = body;
 
-  if (!assignmentId || !submissionUrl) {
-    return res.status(400).json({ message: "assignmentId and submissionUrl are required" });
+  if (!assignmentId) {
+    return res.status(400).json({ message: "assignmentId is required" });
+  }
+
+  // Either URL or file is required
+  if (!submissionUrl && !req.file) {
+    return res.status(400).json({ message: "Either submissionUrl or file is required" });
   }
 
   const assignment = await Assignment.findById(assignmentId).select("batch dueDate isPublished");
@@ -26,12 +31,19 @@ export async function createSubmission(req, res) {
     return res.status(400).json({ message: "Deadline passed" });
   }
 
+  // Handle file upload
+  let fileUrl = "";
+  if (req.file) {
+    fileUrl = `/uploads/submissions/${req.file.filename}`;
+  }
+
   try {
     const submission = await Submission.create({
       assignment: assignmentId,
       batch: assignment.batch,
       student: req.user.id,
-      submissionUrl,
+      submissionUrl: submissionUrl || "",
+      fileUrl,
       note: note || "",
     });
 
@@ -119,4 +131,49 @@ export async function gradeSubmission(req, res) {
 
   await submission.save();
   res.json({ message: "Graded", submission });
+}
+
+/**
+ * Serve submission file securely.
+ * Access: Owner (student), Batch Teacher, or Admin.
+ */
+import path from "path";
+import fs from "fs";
+
+export async function getSubmissionFile(req, res) {
+  const { id } = req.params;
+
+  const submission = await Submission.findById(id).populate({
+    path: "batch",
+    select: "teacher"
+  });
+
+  if (!submission) return res.status(404).json({ message: "Submission not found" });
+
+  // Access check
+  const isStudentOwner = submission.student.toString() === req.user.id;
+  const isTeacher = submission.batch?.teacher?.toString() === req.user.id;
+  const isAdmin = req.user.role === "admin";
+
+  if (!isStudentOwner && !isTeacher && !isAdmin) {
+    return res.status(403).json({ message: "Forbidden: You cannot view this file" });
+  }
+
+  if (!submission.fileUrl) {
+    return res.status(404).json({ message: "No file attached to this submission" });
+  }
+
+  // submission.fileUrl is like "/uploads/submissions/filename.ext"
+  // Request is running from root of backend, so process.cwd() is usually the root.
+  // We need to resolve the path correctly.
+
+  // Clean the fileUrl to prevent traversal attacks slightly (though express sendFile handles relative weirdness, better safe)
+  const relativePath = submission.fileUrl.startsWith("/") ? submission.fileUrl.slice(1) : submission.fileUrl;
+  const absolutePath = path.resolve(process.cwd(), relativePath);
+
+  if (!fs.existsSync(absolutePath)) {
+    return res.status(404).json({ message: "File not found on server" });
+  }
+
+  res.sendFile(absolutePath);
 }

@@ -112,6 +112,7 @@ export default function App() {
             <Route index element={<AdminHome />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="courses" element={<AdminCourses />} />
+            <Route path="courses/:courseId/edit" element={<TeacherCourseEdit />} />
             <Route path="batches" element={<AdminBatches />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="batches/:batchId" element={<AdminBatchManage />} />

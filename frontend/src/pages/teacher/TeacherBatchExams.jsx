@@ -488,7 +488,7 @@ export default function TeacherBatchExams({ batchId }) {
                 />
                 {editing?.questionPdfUrl && !pdfFile && (
                   <p className="text-xs text-slate-500 mt-1">
-                    Current: <a href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/exams/${editing._id}/question`} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">View PDF</a>
+                    Current: <a href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/exams/${editing._id}/question?token=${localStorage.getItem("ln_token")}`} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">View PDF</a>
                   </p>
                 )}
               </div>
@@ -780,7 +780,7 @@ export default function TeacherBatchExams({ batchId }) {
                       </td>
                       <td className="p-3">
                         <a
-                          href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/exams/submission/${s._id}/file`}
+                          href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/exams/submission/${s._id}/file?token=${localStorage.getItem("ln_token")}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-indigo-400 hover:underline"

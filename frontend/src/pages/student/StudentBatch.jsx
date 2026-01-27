@@ -16,6 +16,30 @@ const tabs = [
   { key: "completion", label: "Completion" },
 ];
 
+function getEmbedUrl(inputUrl) {
+  if (!inputUrl) return "";
+  let url = inputUrl;
+  // If it's an iframe string, extract the src
+  if (url.includes("<iframe") && url.includes("src=")) {
+    const match = url.match(/src=["'](.*?)["']/);
+    if (match && match[1]) url = match[1];
+  }
+
+  if (url.includes("youtu.be/")) {
+    const id = url.split("youtu.be/")[1]?.split("?")[0];
+    return `https://www.youtube.com/embed/${id}`;
+  } else if (url.includes("youtube.com/watch")) {
+    const id = new URL(url).searchParams.get("v");
+    return `https://www.youtube.com/embed/${id}`;
+  } else if (url.includes("vimeo.com")) {
+    const id = url.split('/').pop();
+    // Check if it's already an embed link or player link
+    if (url.includes("player.vimeo.com")) return url;
+    return `https://player.vimeo.com/video/${id}`;
+  }
+  return url;
+}
+
 function VideoPlayerModal({ video, onClose }) {
   if (!video) return null;
 
@@ -48,14 +72,11 @@ function VideoPlayerModal({ video, onClose }) {
         <div className="aspect-video bg-black flex items-center justify-center">
           {video.url ? (
             <iframe
-              src={video.url.includes("youtube.com") || video.url.includes("youtu.be")
-                ? video.url.replace("watch?v=", "embed/").split("&")[0]
-                : video.url.includes("vimeo.com")
-                  ? `https://player.vimeo.com/video/${video.url.split('/').pop()}`
-                  : video.url}
+              src={getEmbedUrl(video.url)}
               className="w-full h-full border-0"
               allowFullScreen
               title={video.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             ></iframe>
           ) : (
             <video
@@ -64,7 +85,7 @@ function VideoPlayerModal({ video, onClose }) {
               autoPlay
               controlsList="nodownload"
               src={video.fileUrl ? (
-                video.module ? `/api/lessons/${video._id}/view` : `/api/materials/${video._id}/view`
+                `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${video.module ? `/api/lessons/${video._id}/view` : `/api/materials/${video._id}/view`}?token=${localStorage.getItem("ln_token")}`
               ) : ""}
             ></video>
           )}
@@ -214,8 +235,75 @@ export default function StudentBatch() {
         return setState({ loading: false, data: exams, msg: "" });
       }
       if (tab === "results") {
-        const { data } = await http.get(`/api/attempts/me?batchId=${batchId}`);
-        return setState({ loading: false, data: data.results || [], msg: "" });
+        // Fetch all graded work: assignments, exams, attempts
+        const [assignmentsRes, examsRes, attemptsRes] = await Promise.all([
+          http.get(`/api/submissions/me?batchId=${batchId}`),
+          http.get(`/api/exams/batch/${batchId}`),
+          http.get(`/api/attempts/me?batchId=${batchId}`),
+        ]);
+
+        const results = [];
+
+        // Add graded assignment submissions
+        const submissions = assignmentsRes.data.submissions || [];
+        submissions
+          .filter(s => s.status === "graded" && s.marks !== null && s.marks !== undefined)
+          .forEach(s => {
+            results.push({
+              type: "assignment",
+              id: s._id,
+              title: s.assignment?.title || "Assignment",
+              marks: s.marks,
+              totalMarks: s.assignment?.totalMarks || 100,
+              feedback: s.feedback,
+              submittedAt: s.createdAt,
+              gradedAt: s.gradedAt,
+            });
+          });
+
+        // Add graded PDF exam submissions
+        const exams = examsRes.data.exams || [];
+        for (const exam of exams) {
+          if (exam.examType === "pdf") {
+            try {
+              const subRes = await http.get(`/api/exams/${exam._id}/my-submission`);
+              const sub = subRes.data.submission;
+              if (sub && sub.marks !== null && sub.marks !== undefined) {
+                results.push({
+                  type: "pdf-exam",
+                  id: sub._id,
+                  title: exam.title,
+                  marks: sub.marks,
+                  totalMarks: exam.totalMarks,
+                  feedback: sub.feedback,
+                  submittedAt: sub.submittedAt,
+                  gradedAt: sub.gradedAt,
+                });
+              }
+            } catch (e) {
+              // ignore
+            }
+          }
+        }
+
+        // Add MCQ exam results
+        const attempts = attemptsRes.data.results || [];
+        attempts.forEach(a => {
+          results.push({
+            type: "mcq-exam",
+            id: a._id,
+            title: a.exam?.title || "MCQ Exam",
+            score: a.score,
+            correctCount: a.correctCount,
+            wrongCount: a.wrongCount,
+            submittedAt: a.submittedAt,
+          });
+        });
+
+        // Sort by submission date (newest first)
+        results.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+        return setState({ loading: false, data: results, msg: "" });
       }
       setState({ loading: false, data: [], msg: "Unknown tab" });
     } catch (err) {
@@ -346,10 +434,14 @@ export default function StudentBatch() {
     if (!submitFor?._id) return;
     setSubmitting(true);
     try {
-      const { data } = await http.post("/api/submissions", {
-        assignmentId: submitFor._id,
-        submissionUrl: subForm.submissionUrl,
-        note: subForm.note,
+      const formData = new FormData();
+      formData.append("assignmentId", submitFor._id);
+      if (subForm.submissionUrl) formData.append("submissionUrl", subForm.submissionUrl);
+      if (subForm.note) formData.append("note", subForm.note);
+      if (subForm.file) formData.append("file", subForm.file);
+
+      const { data } = await http.post("/api/submissions", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       setMySubs((prev) => [data.submission, ...(prev || [])]);
       closeSubmit();
@@ -520,7 +612,7 @@ export default function StudentBatch() {
                                     </div>
                                     <div>
                                       <h4 className="text-base font-bold text-slate-100 group-hover:text-white transition-colors">{lesson.title}</h4>
-                                      {lesson.videoUrl && (
+                                      {(lesson.videoUrl || lesson.fileUrl) && (
                                         <div className="mt-1 flex items-center gap-2 text-[10px] text-indigo-400 font-black uppercase tracking-tighter bg-indigo-500/10 px-2.5 py-1 rounded-md w-fit ring-1 ring-indigo-500/20">
                                           <i className="fas fa-play-circle"></i> Video Lecture Available
                                         </div>
@@ -528,7 +620,7 @@ export default function StudentBatch() {
                                     </div>
                                   </div>
                                   <div className="flex gap-2 w-full md:w-auto">
-                                    {lesson.videoUrl ? (
+                                    {lesson.videoUrl || lesson.fileUrl ? (
                                       <button
                                         onClick={() => setActiveVideo({ ...lesson, url: lesson.videoUrl, title: lesson.title })}
                                         className="flex-1 md:flex-none px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
@@ -597,7 +689,7 @@ export default function StudentBatch() {
                       {m.fileUrl && m.type === "video" && (
                         <div className="relative aspect-video rounded-xl overflow-hidden bg-black mb-3 group/video shadow-2xl">
                           <video className="w-full h-full object-cover opacity-80 group-hover/video:opacity-100 transition-opacity">
-                            <source src={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/materials/${m._id}/view`} type="video/mp4" />
+                            <source src={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/materials/${m._id}/view?token=${localStorage.getItem("ln_token")}`} type="video/mp4" />
                           </video>
                           <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover/video:bg-black/20 transition-all pointer-events-none">
                             <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white scale-90 group-hover/video:scale-100 transition-transform">
@@ -605,7 +697,7 @@ export default function StudentBatch() {
                             </div>
                           </div>
                           <a
-                            href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/materials/${m._id}/view`}
+                            href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/materials/${m._id}/view?token=${localStorage.getItem("ln_token")}`}
                             target="_blank" rel="noreferrer"
                             className="absolute inset-0 z-10"
                           ></a>
@@ -622,7 +714,7 @@ export default function StudentBatch() {
                               if (m.type === "video") {
                                 setActiveVideo(m);
                               } else {
-                                window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/materials/${m._id}/view`, "_blank");
+                                window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/materials/${m._id}/view?token=${localStorage.getItem("ln_token")}`, "_blank");
                               }
                             }}
                           >
@@ -631,7 +723,7 @@ export default function StudentBatch() {
                           </button>
                           <a
                             className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700"
-                            href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/materials/${m._id}/download`}
+                            href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/materials/${m._id}/download?token=${localStorage.getItem("ln_token")}`}
                             target="_blank"
                             rel="noreferrer"
                             title="Download"
@@ -642,7 +734,12 @@ export default function StudentBatch() {
                       ) : m.url ? (
                         <a
                           className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold transition-all border border-slate-700 uppercase tracking-widest"
-                          href={m.url}
+                          href={(() => {
+                            let clean = getEmbedUrl(m.url);
+                            // Ensure absolute URL
+                            if (clean && !clean.startsWith("http")) return `https://${clean}`;
+                            return clean;
+                          })()}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -746,6 +843,45 @@ export default function StudentBatch() {
               </div>
             ))}
 
+          {active === "live" &&
+            (state.data.length ? (
+              <div className="grid gap-4">
+                {state.data.map((lc) => (
+                  <div key={lc._id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-indigo-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                      <h3 className="text-lg font-black text-white mb-2">{lc.title}</h3>
+                      <div className="flex items-center gap-4 text-xs text-slate-500 font-bold uppercase tracking-widest">
+                        <span className="flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                          {new Date(lc.scheduledAt).toLocaleString()}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20" /><path d="M2 12h20" /></svg>
+                          {lc.durationMinutes} mins
+                        </span>
+                      </div>
+                      {lc.note && <p className="mt-2 text-sm text-slate-400 italic">"{lc.note}"</p>}
+                    </div>
+                    <div>
+                      <a
+                        href={lc.meetingUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15.4 12.6-4.2 4.2c-.8.8-2 1.4-3.2 1.4H6c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h2c1.2 0 2.4.6 3.2 1.4l4.2 4.2c.8.8.8 2.2 0 3z" /><path d="m16 8 4-4v16l-4-4" /></svg>
+                        Join Class
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-10 text-center rounded-2xl bg-slate-900/50 border border-dashed border-slate-800">
+                <p className="text-slate-500 font-medium">No live classes scheduled.</p>
+              </div>
+            ))}
+
           {active === "exams" &&
             (state.data.length ? (
               <div className="grid gap-4">
@@ -797,6 +933,24 @@ export default function StudentBatch() {
                               </div>
                             </div>
                           </div>
+
+                          {/* Show grade for submitted PDF exams */}
+                          {isPdf && mySub && mySub.marks !== null && mySub.marks !== undefined && (
+                            <div className="mt-4 pt-4 border-t border-slate-800/50">
+                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
+                                <div>
+                                  <span className="text-slate-300 text-[10px] font-bold mr-2 uppercase tracking-widest">Grade:</span>
+                                  <span className="text-indigo-400 font-extrabold text-sm">{mySub.marks} / {e.totalMarks}</span>
+                                </div>
+                              </div>
+                              {mySub.feedback && (
+                                <p className="mt-2 text-xs text-slate-400 italic">
+                                  <span className="font-semibold text-slate-300">Feedback:</span> {mySub.feedback}
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex flex-col sm:flex-row lg:flex-col gap-2">
@@ -843,22 +997,121 @@ export default function StudentBatch() {
               </div>
             ))}
 
-          {active === "results" &&
-            (state.data.length ? (
-              state.data.map((r) => (
-                <div key={r._id} className="p-4 rounded border border-slate-800">
-                  <p className="font-semibold">{r.exam?.title || "Exam"}</p>
-                  <p className="text-slate-400 text-sm">
-                    Score: {r.score} • Correct: {r.correctCount} • Wrong: {r.wrongCount}
-                  </p>
-                  <p className="text-slate-500 text-xs">
-                    Submitted: {r.submittedAt ? new Date(r.submittedAt).toLocaleString() : "N/A"}
-                  </p>
+          {active === "results" && (
+            <div>
+              {state.loading ? (
+                <div className="p-10 text-center">
+                  <p className="text-slate-400">Loading your results...</p>
                 </div>
-              ))
-            ) : (
-              <p className="text-slate-400">No results yet.</p>
-            ))}
+              ) : state.data.length ? (
+                <div className="grid gap-4">
+                  {state.data.map((result) => {
+                    const isAssignment = result.type === "assignment";
+                    const isPdfExam = result.type === "pdf-exam";
+                    const isMcq = result.type === "mcq-exam";
+
+                    return (
+                      <div
+                        key={result.id}
+                        className="group p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-indigo-500/30 transition-all shadow-xl"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className={`p-2 rounded-lg ${isAssignment ? "bg-blue-500/10 text-blue-400" :
+                                  isPdfExam ? "bg-orange-500/10 text-orange-400" :
+                                    "bg-green-500/10 text-green-400"
+                                }`}>
+                                {isAssignment ? (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" x2="8" y1="13" y2="13" /><line x1="16" x2="8" y1="17" y2="17" /><line x1="10" x2="8" y1="9" y2="9" /></svg>
+                                ) : isPdfExam ? (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6" /><path d="M9 16h6" /></svg>
+                                ) : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2Z" /><path d="M12 12 2 2" /></svg>
+                                )}
+                              </div>
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isAssignment ? "bg-blue-500/10 border border-blue-500/20 text-blue-400" :
+                                  isPdfExam ? "bg-orange-500/10 border border-orange-500/20 text-orange-400" :
+                                    "bg-green-500/10 border border-green-500/20 text-green-400"
+                                }`}>
+                                {isAssignment ? "Assignment" : isPdfExam ? "PDF Exam" : "MCQ Exam"}
+                              </span>
+                            </div>
+
+                            <h3 className="text-lg font-black text-white mb-2 group-hover:text-indigo-400 transition-colors uppercase tracking-tight">
+                              {result.title}
+                            </h3>
+
+                            <div className="flex flex-wrap items-center gap-4 text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-3">
+                              <div className="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                                Submitted: {new Date(result.submittedAt).toLocaleDateString()}
+                              </div>
+                              {result.gradedAt && (
+                                <>
+                                  <span>•</span>
+                                  <div className="flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                                    Graded: {new Date(result.gradedAt).toLocaleDateString()}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+
+                            {result.feedback && (
+                              <div className="mt-3 p-3 rounded-lg bg-slate-950/50 border border-slate-800">
+                                <p className="text-xs text-slate-400 italic">
+                                  <span className="font-semibold text-slate-300">Teacher Feedback:</span> {result.feedback}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-shrink-0">
+                            {isMcq ? (
+                              <div className="p-4 rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 min-w-[180px]">
+                                <div className="text-center">
+                                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-2">Score</p>
+                                  <p className="text-3xl font-black text-green-400 mb-2">{result.score}</p>
+                                  <div className="flex items-center justify-center gap-3 text-[10px] font-bold">
+                                    <span className="text-emerald-400">✓ {result.correctCount}</span>
+                                    <span className="text-slate-600">•</span>
+                                    <span className="text-rose-400">✗ {result.wrongCount}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 min-w-[180px]">
+                                <div className="text-center">
+                                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-2">Grade</p>
+                                  <div className="flex items-center justify-center gap-2">
+                                    <span className="text-3xl font-black text-indigo-400">{result.marks}</span>
+                                    <span className="text-slate-600 text-xl">/</span>
+                                    <span className="text-2xl font-bold text-slate-500">{result.totalMarks}</span>
+                                  </div>
+                                  <div className="mt-2 text-xs font-bold text-slate-500">
+                                    {Math.round((result.marks / result.totalMarks) * 100)}% Score
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-20 text-center rounded-3xl bg-slate-900/50 border-2 border-dashed border-slate-800">
+                  <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-300 uppercase italic">No Results Yet</h3>
+                  <p className="text-slate-500 text-sm mt-1">Your graded assignments and exam results will appear here.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )
       }
@@ -964,14 +1217,23 @@ export default function StudentBatch() {
 
           <form onSubmit={submitAssignment} className="mt-4 space-y-3">
             <div>
-              <label className="text-xs text-slate-400">Submission URL *</label>
+              <label className="text-xs text-slate-400">Submission URL</label>
               <input
                 className="mt-1 w-full rounded border border-slate-800 bg-slate-950 px-3 py-2 text-sm"
                 value={subForm.submissionUrl}
                 onChange={(e) => setSubForm((p) => ({ ...p, submissionUrl: e.target.value }))}
                 placeholder="Google Drive / GitHub / Any link"
-                required
               />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400">Attach File (Optional)</label>
+              <input
+                type="file"
+                className="mt-1 w-full rounded border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-300"
+                onChange={(e) => setSubForm(p => ({ ...p, file: e.target.files[0] }))}
+              />
+              <p className="text-[10px] text-slate-500 mt-1">Supported: PDF, Doc, Zip, Images</p>
             </div>
 
             <div>
@@ -993,7 +1255,7 @@ export default function StudentBatch() {
                 Cancel
               </button>
               <button
-                disabled={submitting}
+                disabled={submitting || (!subForm.submissionUrl && !subForm.file)}
                 className="px-3 py-2 rounded bg-slate-100 text-slate-900 text-sm disabled:opacity-60"
               >
                 {submitting ? "Submitting..." : "Submit"}

@@ -1,10 +1,14 @@
 import { verifyToken } from "../utils/token.js";
 
 export function requireAuth(req, res, next) {
-  const auth = req.headers.authorization || "";
-  const [type, token] = auth.split(" ");
+  let token = "";
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+    token = req.headers.authorization.split(" ")[1];
+  } else if (req.query.token) {
+    token = req.query.token;
+  }
 
-  if (type !== "Bearer" || !token) {
+  if (!token) {
     return res.status(401).json({ message: "Unauthorized: missing token" });
   }
 
