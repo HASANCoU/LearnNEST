@@ -81,25 +81,25 @@ export const uploadAvatar = multer({
 export const uploadThumbnail = multer({
     storage,
     fileFilter: imageFilter,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
 });
 
 export const uploadMaterial = multer({
     storage,
     fileFilter: materialFilter,
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
 });
 
 export const uploadLesson = multer({
     storage,
     fileFilter: materialFilter,
-    limits: { fileSize: 200 * 1024 * 1024 }, // 200MB for video lessons
+    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB for video lessons
 });
 
 export const uploadExamPdf = multer({
     storage,
     fileFilter: pdfFilter,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
 });
 
 // File filter for submissions (allow most types: pdf, img, doc, zip)
@@ -117,7 +117,7 @@ const submissionFilter = (req, file, cb) => {
 export const uploadSubmission = multer({
     storage,
     fileFilter: submissionFilter,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
 });
 
 // Middleware to set upload type
